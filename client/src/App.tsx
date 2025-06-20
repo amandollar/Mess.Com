@@ -21,7 +21,7 @@ export default function App() {
   const socketRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8080");
+    const socket = new WebSocket("https://mess-com.onrender.com/");
     socketRef.current = socket;
 
     socket.onopen = () => {
