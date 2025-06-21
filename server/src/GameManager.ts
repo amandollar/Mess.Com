@@ -32,7 +32,7 @@ export class GameManager {
                 } catch (err) {
                     console.error("Failed to notify opponent of disconnection:", err);
                 }
-                return false; // Remove game
+                return false;
             }
             return true;
         });

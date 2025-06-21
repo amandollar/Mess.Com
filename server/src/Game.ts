@@ -26,7 +26,7 @@ export class Game {
     }
 
     makeMove(socket: WebSocket, move: { from: string, to: string }) {
-        const currentTurn = this.board.turn(); // 'w' or 'b'
+        const currentTurn = this.board.turn();
 
         const isWhiteTurn = currentTurn === 'w';
         const isValidPlayer =
@@ -45,7 +45,7 @@ export class Game {
             return;
         }
 
-        // Broadcast the valid move to both players
+   
         const message = JSON.stringify({
             type: MOVE,
             payload: move
