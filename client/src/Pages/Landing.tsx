@@ -50,7 +50,7 @@ const Landing = () => {
                 transition={{ type: 'spring', stiffness: 100 }}
                 className="text-3xl sm:text-4xl font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
               >
-                MessOnline
+                OnlineMess
               </motion.h1>
               <motion.div
                 whileHover={{ scale: 1.05 }}
