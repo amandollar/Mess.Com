@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Chess } from "chess.js";
 import { Chessboard } from "react-chessboard";
+import "./index.css";
 
 const INIT_GAME = "init_game" as const;
 const MOVE = "move" as const;
@@ -19,9 +20,27 @@ export default function App() {
   const [color, setColor] = useState<"white" | "black">("white");
   const [status, setStatus] = useState("Waiting for opponent...");
   const socketRef = useRef<WebSocket | null>(null);
+  const [boardSize, setBoardSize] = useState(420); 
 
   useEffect(() => {
-    const socket = new WebSocket("https://mess-com.onrender.com/");
+
+    const handleResize = () => {
+      const newSize = Math.min(
+        420,
+        window.innerWidth - 40, 
+        window.innerHeight - 200 
+      );
+      setBoardSize(newSize);
+    };
+
+    handleResize(); 
+    window.addEventListener("resize", handleResize);
+    
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const socket = new WebSocket("wss://mess-com.onrender.com");
     socketRef.current = socket;
 
     socket.onopen = () => {
@@ -33,7 +52,7 @@ export default function App() {
 
       if (msg.type === INIT_GAME) {
         setColor(msg.payload.color);
-        setStatus("Game started. You are " + msg.payload.color);
+        setStatus(`🎮 Game started! You are playing as ${msg.payload.color.toUpperCase()}`);
       }
 
       if (msg.type === MOVE) {
@@ -43,52 +62,65 @@ export default function App() {
       }
 
       if (msg.type === GAME_OVER) {
-        setStatus("Game over. Winner: " + msg.payload.winner);
+        setStatus(`🏁 Game over! Winner: ${msg.payload.winner.toUpperCase()}`);
       }
 
       if (msg.type === OPPONENT_DISCONNECTED) {
-        setStatus("Opponent disconnected.");
+        setStatus("⚠️ Opponent disconnected.");
       }
     };
 
-    socket.onclose = () => {
-      setStatus("Connection closed.");
-    };
+    socket.onclose = () => setStatus("🔌 Waiting for someone to join.");
+    socket.onerror = () => setStatus("❌ Connection error.");
 
-    socket.onerror = () => {
-      setStatus("Connection error.");
-    };
-
-    return () => {
-      socket.close();
-    };
+    return () => socket.close();
   }, []);
 
-  const onDrop = (sourceSquare: string, targetSquare: string) => {
+  const onDrop = (from: string, to: string) => {
     if (game.turn() !== color[0]) return false;
-
-    const move = game.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
+    const move = game.move({ from, to, promotion: "q" });
     if (move) {
       setFen(game.fen());
       setGame(new Chess(game.fen()));
-      socketRef.current?.send(JSON.stringify({ type: MOVE, move: { from: sourceSquare, to: targetSquare } }));
+      socketRef.current?.send(JSON.stringify({ type: MOVE, move: { from, to } }));
       return true;
     }
     return false;
   };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900 text-white">
-      <h1 className="text-3xl font-bold mb-4">Mess.COM</h1>
-      <p className="mb-4 text-lg">{status}</p>
-      <Chessboard
-        position={fen}
-        onPieceDrop={onDrop}
-        boardOrientation={color}
-        boardWidth={400}
-        customBoardStyle={{ borderRadius: "0.5rem", boxShadow: "0 0 15px rgba(0,0,0,0.5)" }}
-        customDarkSquareStyle={{ backgroundColor: "#779556" }}
-        customLightSquareStyle={{ backgroundColor: "#ebecd0" }}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#0f172a] text-white flex flex-col items-center justify-start px-4 py-4 sm:py-6">
+      <div className="w-full max-w-3xl flex flex-col items-center space-y-4 sm:space-y-6">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-amber-400 drop-shadow-lg animate-pulse tracking-wide">
+          ♛ Aman Chess
+        </h1>
+        
+        <p className="text-base sm:text-lg text-slate-300 bg-slate-700 px-4 py-2 rounded-full shadow-md text-center w-full sm:w-auto">
+          {status}
+        </p>
+
+        <div className="rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(255,255,255,0.1)] border border-slate-700 p-1 sm:p-2 bg-slate-800 transition duration-300 hover:scale-[1.02]">
+          <Chessboard
+            position={fen}
+            onPieceDrop={onDrop}
+            boardOrientation={color}
+            boardWidth={boardSize}
+            customDarkSquareStyle={{ backgroundColor: "#1e3a8a" }}
+            customLightSquareStyle={{ backgroundColor: "#facc15" }}
+          />
+        </div>
+
+        <footer className="text-xs sm:text-sm w-full mt-4 sm:mt-6 text-center text-slate-400 flex flex-col items-center gap-1 sm:gap-2">
+          <div className="flex gap-1 sm:gap-2 items-center text-xs sm:text-sm">
+            <span className="text-lime-400">⚔ Connected as:</span>
+            <span className="font-semibold text-white capitalize">{color}</span>
+          </div>
+          <div className="text-xs opacity-70">
+            Made with <span className="text-red-500">♥</span> by Aman •{" "}
+            <span className="italic">Multiplayer WebSocket Chess</span>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
